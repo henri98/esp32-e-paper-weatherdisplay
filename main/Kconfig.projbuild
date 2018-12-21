@@ -4,11 +4,31 @@ config ESP_WIFI_SSID
     string "WiFi SSID"
     default "myssid"
     help
-	SSID (network name) for the example to connect to.
+	SSID (network name) for the project to connect to.
 
 config ESP_WIFI_PASSWORD
     string "WiFi Password"
     default "mypassword"
     help
-	WiFi password (WPA or WPA2) for the example to use.
+	WiFi password (WPA or WPA2) for the project to use.
+
+config ESP_DNS_NAME
+    string "DNS Name"
+    default "myweatherdisplay"
+    help
+	DNS name for the project to use in the network.
+endmenu
+menu "Openweathermap Configuration"
+config ESP_OPEN_WEATHER_MAP_CITY_ID
+    string "City ID"
+    default "5128638"
+    help
+	Get your city ID from: http://bulk.openweathermap.org/sample/city.list.json.gz
+
+config ESP_OPEN_WEATHER_MAP_API_KEY
+    string "Open Weather Map API KEY"
+    default "myapikey"
+    help
+	You can get an api key here: https://openweathermap.org/appid
+
 endmenu
