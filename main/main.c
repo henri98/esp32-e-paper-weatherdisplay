@@ -66,7 +66,7 @@ static esp_err_t event_handler(void* ctx, system_event_t* event);
 /* Constants that aren't configurable in menuconfig */
 #define WEB_SERVER "api.openweathermap.org"
 #define WEB_PORT "443"
-#define WEB_URL "https://api.openweathermap.org/data/2.5/weather?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY ""
+#define WEB_URL "https://api.openweathermap.org/data/2.5/weather?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY "&lang=" CONFIG_ESP_OPEN_WEATHER_MAP_API_LANG ""
 //#define WEB_URL "https://api.openweathermap.org/data/2.5/forecast?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY ""
 
 static const char* REQUEST = "GET " WEB_URL " HTTP/1.0\r\n"
@@ -163,12 +163,13 @@ static void initialize_sntp(void)
 
 static void parse_current_weather_json(char* data_ptr, struct WeatherMessage* msg)
 {
+    static const char* TAG = "parse_current_weather_json";
     cJSON* json;
 
     json = cJSON_Parse(data_ptr);
 
     if (json == NULL) {
-        printf("Error before: [%s]\n", cJSON_GetErrorPtr());
+        ESP_LOGE(TAG, "Error in cJSON_Parse: [%s]\n", cJSON_GetErrorPtr());
     }
 
     cJSON* json_name = cJSON_GetObjectItemCaseSensitive(json, "name");
