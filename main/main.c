@@ -20,29 +20,17 @@
 
 #include "cJSON.h"
 
-struct WeatherMessage {
-    char id;
-    char name[20];
-    double temperature;
-    int pressure;
-    int humidity;
-    char main[20];
-    char description[30];
-    char icon[5];
-    double wind_speed;
-    int wind_deg;
-    int clouds;
-};
+#include "darksky.h"
 
 QueueHandle_t msgQueue;
 
 TaskHandle_t get_current_weather_task_handler;
-TaskHandle_t ntp_task_handler;
+TaskHandle_t update_time_using_ntp_task_handler;
 
 /* The project use simple WiFi configuration that you can set via 'make menuconfig'.*/
 
-/* FreeRTOS event group to signal when we are connected & ready to make a request */
-static EventGroupHandle_t wifi_event_group;
+/* FreeRTOS event group to signal when we are connected & ready to make a CURRENT_WEATHER_REQUEST */
+EventGroupHandle_t wifi_event_group;
 
 /* The event group allows multiple bits for each event,
    but we only care about one event - are we connected
@@ -57,32 +45,7 @@ RTC_DATA_ATTR static int boot_count = 0;
 
 static int update_interval_seconds = 6 * 60 * 60;
 
-static void
-obtain_time(void);
-static void initialize_sntp(void);
-static void initialise_wifi(void);
-static esp_err_t event_handler(void* ctx, system_event_t* event);
-
-/* Constants that aren't configurable in menuconfig */
-#define WEB_SERVER "api.openweathermap.org"
-#define WEB_PORT "443"
-#define WEB_URL "https://api.openweathermap.org/data/2.5/weather?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY "&lang=" CONFIG_ESP_OPEN_WEATHER_MAP_API_LANG ""
-//#define WEB_URL "https://api.openweathermap.org/data/2.5/forecast?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY ""
-
-static const char* REQUEST = "GET " WEB_URL " HTTP/1.0\r\n"
-                             "Host: " WEB_SERVER "\r\n"
-                             "User-Agent: esp-idf/1.0 esp32\r\n"
-                             "\r\n";
-
-/* Root cert for howsmyssl.com, taken from server_root_cert.pem
-   The PEM file was extracted from the output of this command:
-   openssl s_client -showcerts -connect api.openweathermap.com:443 </dev/null
-   The CA root cert is the last cert given in the chain of certs.
-   To embed it in the app binary, the PEM file is named
-   in the component.mk COMPONENT_EMBED_TXTFILES variable.
-*/
-extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
-extern const uint8_t server_root_cert_pem_end[] asm("_binary_server_root_cert_pem_end");
+Forecast forecasts[8];
 
 esp_err_t event_handler(void* ctx, system_event_t* event)
 {
@@ -132,6 +95,15 @@ static void deinitialize_wifi()
     ESP_ERROR_CHECK(esp_wifi_stop());
 }
 
+static void initialize_sntp(void)
+{
+    static const char* TAG = "initialize_sntp";
+    ESP_LOGI(TAG, "Initializing SNTP");
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "pool.ntp.org");
+    sntp_init();
+}
+
 static void obtain_time(void)
 {
     static const char* TAG = "obtain_time";
@@ -152,203 +124,29 @@ static void obtain_time(void)
     }
 }
 
-static void initialize_sntp(void)
-{
-    static const char* TAG = "initialize_sntp";
-    ESP_LOGI(TAG, "Initializing SNTP");
-    sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    sntp_setservername(0, "pool.ntp.org");
-    sntp_init();
-}
-
-static void parse_current_weather_json(char* data_ptr, struct WeatherMessage* msg)
-{
-    static const char* TAG = "parse_current_weather_json";
-    cJSON* json;
-
-    json = cJSON_Parse(data_ptr);
-
-    if (json == NULL) {
-        ESP_LOGE(TAG, "Error in cJSON_Parse: [%s]\n", cJSON_GetErrorPtr());
-    }
-
-    cJSON* json_name = cJSON_GetObjectItemCaseSensitive(json, "name");
-    if (cJSON_IsString(json_name) && (json_name->valuestring != NULL)) {
-        sprintf((*msg).name, "%s", json_name->valuestring);
-    }
-
-    cJSON* json_main = cJSON_GetObjectItemCaseSensitive(json, "main");
-    cJSON* json_main_temp = cJSON_GetObjectItemCaseSensitive(json_main, "temp");
-    cJSON* json_main_pressure = cJSON_GetObjectItemCaseSensitive(json_main, "pressure");
-    cJSON* json_main_humidity = cJSON_GetObjectItemCaseSensitive(json_main, "humidity");
-
-    if (cJSON_IsNumber(json_main_temp)) {
-        (*msg).temperature = json_main_temp->valuedouble - (double)273.15;
-    }
-
-    if (cJSON_IsNumber(json_main_pressure)) {
-        msg->pressure = json_main_pressure->valueint;
-    }
-
-    if (cJSON_IsNumber(json_main_humidity)) {
-        msg->humidity = json_main_humidity->valueint;
-    }
-
-    cJSON* json_weather = cJSON_GetObjectItemCaseSensitive(json, "weather");
-    cJSON* tmp = NULL;
-    cJSON_ArrayForEach(tmp, json_weather)
-    {
-        cJSON* json_weather_main = cJSON_GetObjectItemCaseSensitive(tmp, "main");
-        cJSON* json_weather_description = cJSON_GetObjectItemCaseSensitive(tmp, "description");
-        cJSON* json_weather_icon = cJSON_GetObjectItemCaseSensitive(tmp, "icon");
-
-        if (cJSON_IsString(json_weather_main) && (json_weather_main->valuestring != NULL)) {
-            sprintf(msg->main, "%s", json_weather_main->valuestring);
-        }
-
-        if (cJSON_IsString(json_weather_description) && (json_weather_description->valuestring != NULL)) {
-            sprintf(msg->description, "%s", json_weather_description->valuestring);
-        }
-
-        if (cJSON_IsString(json_weather_icon) && (json_weather_icon->valuestring != NULL)) {
-            sprintf(msg->icon, "%s", json_weather_icon->valuestring);
-        }
-    }
-
-    cJSON* json_wind = cJSON_GetObjectItemCaseSensitive(json, "wind");
-    cJSON* json_main_speed = cJSON_GetObjectItemCaseSensitive(json_wind, "speed");
-    cJSON* json_main_deg = cJSON_GetObjectItemCaseSensitive(json_wind, "deg");
-
-    if (cJSON_IsNumber(json_main_speed)) {
-
-        msg->wind_speed = json_main_speed->valuedouble;
-    }
-
-    if (cJSON_IsNumber(json_main_deg)) {
-        msg->wind_deg = json_main_deg->valuedouble;
-    }
-
-    cJSON* json_clouds = cJSON_GetObjectItemCaseSensitive(json, "clouds");
-    cJSON* json_clouds_all = cJSON_GetObjectItemCaseSensitive(json_clouds, "all");
-
-    if (cJSON_IsNumber(json_clouds_all)) {
-        msg->clouds = json_clouds_all->valuedouble;
-    }
-
-    msg->id = 0;
-}
-
-static void get_current_weather_task(void* pvParameters)
-{
-    static const char* TAG = "get_current_weather_task";
-    char buf[1024];
-    struct WeatherMessage* msg = malloc(sizeof(struct WeatherMessage*));
-
-    int ret, len;
-
-    /* Wait for the callback to set the CONNECTED_BIT in the
-           event group.
-        */
-    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT,
-        false, true, portMAX_DELAY);
-    ESP_LOGI(TAG, "Connected to AP");
-    esp_tls_cfg_t cfg = {
-        .cacert_pem_buf = server_root_cert_pem_start,
-        .cacert_pem_bytes = server_root_cert_pem_end - server_root_cert_pem_start,
-    };
-
-    struct esp_tls* tls = esp_tls_conn_http_new(WEB_URL, &cfg);
-
-    if (tls != NULL) {
-        ESP_LOGI(TAG, "Connection established...");
-    } else {
-        ESP_LOGE(TAG, "Connection failed...");
-        goto exit;
-    }
-
-    size_t written_bytes = 0;
-    do {
-        ret = esp_tls_conn_write(tls,
-            REQUEST + written_bytes,
-            strlen(REQUEST) - written_bytes);
-        if (ret >= 0) {
-            ESP_LOGI(TAG, "%d bytes written", ret);
-            written_bytes += ret;
-        } else if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            ESP_LOGE(TAG, "esp_tls_conn_write  returned 0x%x", ret);
-            goto exit;
-        }
-    } while (written_bytes < strlen(REQUEST));
-
-    ESP_LOGI(TAG, "Reading HTTP response...");
-
-    int offset = 0;
-
-    do {
-        char tmp_buf[64];
-
-        len = sizeof(tmp_buf) - 1;
-        bzero(tmp_buf, sizeof(tmp_buf));
-        ret = esp_tls_conn_read(tls, (char*)tmp_buf, len);
-
-        if (ret == MBEDTLS_ERR_SSL_WANT_WRITE || ret == MBEDTLS_ERR_SSL_WANT_READ)
-            continue;
-
-        if (ret < 0) {
-            ESP_LOGE(TAG, "esp_tls_conn_read  returned -0x%x", -ret);
-            break;
-        }
-
-        if (ret == 0) {
-            ESP_LOGI(TAG, "connection closed");
-            break;
-        }
-
-        len = ret;
-        ESP_LOGD(TAG, "%d bytes read", len);
-
-        for (int i = 0; i < len; i++) {
-            //putchar();
-            buf[i + offset] = tmp_buf[i];
-        }
-        offset += len;
-
-    } while (1);
-
-    buf[offset] = 0;
-
-exit:
-    esp_tls_conn_delete(tls);
-
-    // Data can be found after the HTTP header, get te offset to get the data
-    char* data_offset = strstr(buf, "\r\n\r\n");
-
-    parse_current_weather_json(data_offset, msg);
-
-    ESP_LOGI(TAG, "Sending msg in msgQueue!");
-    xQueueSend(msgQueue, (void*)&msg, portMAX_DELAY);
-
-    vTaskDelete(NULL);
-}
-
 static void update_display_task(void* pvParameters)
 {
     static const char* TAG = "update_display_task";
-    struct WeatherMessage* msg;
+    Forecast* forecast;
 
-    // Receive a message on the queue
-    if (xQueueReceive(msgQueue, &(msg), portMAX_DELAY)) {
-        ESP_LOGI(TAG, "Message received in msgQueue!");
+    printf("%-20s%-20s%-40s%-25s%-20s%-20s%-15s%-15s\n", "", "", "Summary", "Icon", "Temperature high", "Temperature low", "Humidity", "Pressure");
 
-        ESP_LOGI(TAG, "\nPlace: %s,\nTemperature: %0.2f,\nPressure: %d,\nHumidity: %d,\nMain: %s,\nDescription: %s,\nIcon: %s,\nWind speed: %0.2f,\nWind deg: %d,\nClouds: %d\n", msg->name, msg->temperature, msg->pressure, msg->humidity, msg->main, msg->description, msg->icon, msg->wind_speed, msg->wind_deg, msg->clouds);
+    for (size_t i = 0; i < (sizeof(forecasts) / sizeof(Forecast)); i++) {
+        struct tm timeinfo;
+        setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
+        tzset();
+        localtime_r(&forecasts[i].time, &timeinfo);
+        char date[20];
+        strftime(date, sizeof(date), "%A %d - %m", &timeinfo);
+        printf("%-20lu%-20s%-40s%-25s%-20.2f%-20.2f%-15.2f%-15d\n", forecasts[i].time, date, forecasts[i].summary, forecasts[i].icon, forecasts[i].temperatureHigh, forecasts[i].temperatureLow, forecasts[i].humidity, forecasts[i].pressure);
     }
 
     vTaskDelete(NULL);
 }
 
-static void ntp_task(void* pvParameters)
+static void update_time_using_ntp_task(void* pvParameters)
 {
-    static const char* TAG = "ntp_task";
+    static const char* TAG = "update_time_using_ntp_task";
 
     time_t now;
     struct tm timeinfo;
@@ -383,17 +181,14 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     initialise_wifi();
 
-    msgQueue = xQueueCreate(1, sizeof(struct WeatherMessage*));
+    xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, &forecasts, 5, &get_current_weather_task_handler);
 
-    if (msgQueue == NULL) {
-        ESP_LOGE(TAG, "msgQueue was not created and must not be used.");
-    } else {
-        xTaskCreate(&get_current_weather_task, "get_current_weather_task", 8192, NULL, 5, &get_current_weather_task_handler);
-        xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
-    }
+    xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
+    vTaskDelay(10000 / portTICK_PERIOD_MS);
 
-    xTaskCreate(&ntp_task, "ntp_task", 2048, NULL, 5, &ntp_task_handler);
-    vTaskDelay(20000 / portTICK_PERIOD_MS);
+    xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
+
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
 
     deinitialize_wifi();
 
