@@ -85,7 +85,7 @@ void get_current_weather_task(void* pvParameters)
 
     char buf[1024 * 10];
 
-    https_get(WEB_URL, REQUEST, buf);
+    https_get(WEB_URL, request, buf);
 
     // Data can be found after the HTTP header, get te offset to get the data
     char* data_offset = strstr(buf, "\r\n\r\n");

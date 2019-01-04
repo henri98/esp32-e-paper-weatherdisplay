@@ -23,22 +23,18 @@
 
 #include "cJSON.h"
 
-// #define WEB_SERVER "api.openweathermap.org"
-// #define WEB_PORT "443"
-// #define CURRENT_WEATHER_WEB_URL "https://api.openweathermap.org/data/2.5/weather?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY "&lang=" CONFIG_ESP_OPEN_WEATHER_MAP_API_LANG "&units=metric"
-// #define FORECAST_WEATHER_WEB_URL "https://api.openweathermap.org/data/2.5/forecast?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY "&lang=" CONFIG_ESP_OPEN_WEATHER_MAP_API_LANG "&units=metric"
 #define WEB_SERVER "api.darksky.net"
 #define WEB_PORT "443"
-#define WEB_URL "https://api.darksky.net/forecast/d1e8cbd61876b713aec0eeed353e0181/52.234361,5.716846?lang=en&exclude=hourly,flag,currently&units=auto"
+#define WEB_URL "https://api.darksky.net/forecast/" CONFIG_DARKSKY_API_KEY "/" CONFIG_LATITUDE "," CONFIG_LONGITUDE "?lang=en&exclude=hourly,flag,currently&units=auto"
 
-static const char* REQUEST = "GET " WEB_URL " HTTP/1.0\r\n"
+static const char* request = "GET " WEB_URL " HTTP/1.0\r\n"
                              "Host: " WEB_SERVER "\r\n"
                              "User-Agent: esp-idf/1.0 esp32\r\n"
                              "\r\n";
 
-/* Root cert for api.openweathermap.org, taken from server_root_cert.pem
+/* Root cert for api.darksky.org, taken from server_root_cert.pem
    The PEM file was extracted from the output of this command:
-   openssl s_client -showcerts -connect api.openweathermap.com:443 </dev/null
+   openssl s_client -showcerts -connect api.darksky.com:443 </dev/null
    The CA root cert is the last cert given in the chain of certs.
    To embed it in the app binary, the PEM file is named
    in the component.mk COMPONENT_EMBED_TXTFILES variable.

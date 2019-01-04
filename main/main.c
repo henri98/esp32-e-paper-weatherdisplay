@@ -174,10 +174,6 @@ static void update_display_task(void* pvParameters)
 
     clear(UNCOLORED);
 
-    Forecast* forecast;
-
-    printf("%-20s%-20s%-60s%-25s%-20s%-20s%-15s%-15s\n", "", "", "Summary", "Icon", "Temperature high", "Temperature low", "Humidity", "Pressure");
-
     for (size_t i = 0; i < (sizeof(forecasts) / sizeof(Forecast)); i++) {
         struct tm timeinfo;
         setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
@@ -266,8 +262,6 @@ static void update_display_task(void* pvParameters)
                 draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &nightaltcloudy);
             }
         }
-
-        printf("%-20lu%-20s%-60s%-25s%-20.2f%-20.2f%-15.2f%-15d\n", forecasts[i].time, date, forecasts[i].summary, forecasts[i].icon, forecasts[i].temperatureHigh, forecasts[i].temperatureLow, forecasts[i].humidity, forecasts[i].pressure);
     }
 
     draw_string("Garderen", 345, 0, &Ubuntu12);
