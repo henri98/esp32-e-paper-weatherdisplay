@@ -29,7 +29,7 @@
 // #define FORECAST_WEATHER_WEB_URL "https://api.openweathermap.org/data/2.5/forecast?id=" CONFIG_ESP_OPEN_WEATHER_MAP_CITY_ID "&appid=" CONFIG_ESP_OPEN_WEATHER_MAP_API_KEY "&lang=" CONFIG_ESP_OPEN_WEATHER_MAP_API_LANG "&units=metric"
 #define WEB_SERVER "api.darksky.net"
 #define WEB_PORT "443"
-#define WEB_URL "https://api.darksky.net/forecast/d1e8cbd61876b713aec0eeed353e0181/52.234361,5.716846?lang=nl&exclude=hourly,flag,currently&units=auto"
+#define WEB_URL "https://api.darksky.net/forecast/d1e8cbd61876b713aec0eeed353e0181/52.234361,5.716846?lang=en&exclude=hourly,flag,currently&units=auto"
 
 static const char* REQUEST = "GET " WEB_URL " HTTP/1.0\r\n"
                              "Host: " WEB_SERVER "\r\n"
