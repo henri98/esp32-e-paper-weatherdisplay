@@ -81,7 +81,6 @@ exit:
 
 void get_current_weather_task(void* pvParameters)
 {
-    Forecast* forecasts = pvParameters;
 
     char buf[1024 * 10];
 
@@ -96,12 +95,49 @@ void get_current_weather_task(void* pvParameters)
         ESP_LOGE(TAG, "Error in cJSON_Parse: [%s]\n", cJSON_GetErrorPtr());
     }
 
-    uint8_t q = 0;
+    // Get the current weather data from the current object
+    cJSON* json_currently = cJSON_GetObjectItemCaseSensitive(json, "currently");
+
+    cJSON* json_currently_summary = cJSON_GetObjectItemCaseSensitive(json_currently, "summary");
+    if (cJSON_IsString(json_currently_summary) && (json_currently_summary->valuestring != NULL)) {
+        sprintf(summary, "%s", json_currently_summary->valuestring);
+    }
+
+    cJSON* json_currently_icon = cJSON_GetObjectItemCaseSensitive(json_currently, "icon");
+    if (cJSON_IsString(json_currently_icon) && (json_currently_icon->valuestring != NULL)) {
+        sprintf(icon, "%s", json_currently_icon->valuestring);
+    }
+
+    cJSON* json_currently_temperature = cJSON_GetObjectItemCaseSensitive(json_currently, "temperature");
+    if (cJSON_IsNumber(json_currently_temperature)) {
+        temperature = json_currently_temperature->valuedouble;
+    }
+
+    cJSON* json_currently_humidity = cJSON_GetObjectItemCaseSensitive(json_currently, "humidity");
+    if (cJSON_IsNumber(json_currently_humidity)) {
+        humidity = json_currently_humidity->valuedouble;
+    }
+
+    cJSON* json_currently_pressure = cJSON_GetObjectItemCaseSensitive(json_currently, "pressure");
+    if (cJSON_IsNumber(json_currently_pressure)) {
+        pressure = json_currently_pressure->valuedouble;
+    }
+
+    cJSON* json_currently_wind_speed = cJSON_GetObjectItemCaseSensitive(json_currently, "windSpeed");
+    if (cJSON_IsNumber(json_currently_wind_speed)) {
+        wind_speed = json_currently_wind_speed->valuedouble;
+    }
+
+    cJSON* json_currently_wind_bearing = cJSON_GetObjectItemCaseSensitive(json_currently, "windBearing");
+    if (cJSON_IsNumber(json_currently_wind_bearing)) {
+        wind_bearing = json_currently_wind_bearing->valuedouble;
+    }
 
     // Get the forecast weather data from the daily object
     cJSON* json_daily = cJSON_GetObjectItemCaseSensitive(json, "daily");
     cJSON* json_daily_data = cJSON_GetObjectItemCaseSensitive(json_daily, "data");
     cJSON* json_daily_data_x = NULL;
+    uint8_t q = 0;
     cJSON_ArrayForEach(json_daily_data_x, json_daily_data)
     {
         cJSON* json_daily_data_x_time = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "time");
@@ -122,24 +158,24 @@ void get_current_weather_task(void* pvParameters)
             sprintf(forecasts[q].icon, "%s", json_daily_data_x_icon->valuestring);
         }
 
-        cJSON* json_daily_data_x_temperature_high = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "temperatureHigh");
-        if (cJSON_IsNumber(json_daily_data_x_temperature_high)) {
-            forecasts[q].temperatureHigh = json_daily_data_x_temperature_high->valuedouble;
+        cJSON* json_daily_data_x_temperature_max = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "temperatureMax");
+        if (cJSON_IsNumber(json_daily_data_x_temperature_max)) {
+            forecasts[q].temperatureMax = json_daily_data_x_temperature_max->valuedouble;
         }
 
-        cJSON* json_daily_data_x_temperature_low = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "temperatureLow");
-        if (cJSON_IsNumber(json_daily_data_x_temperature_low)) {
-            forecasts[q].temperatureLow = json_daily_data_x_temperature_low->valuedouble;
+        cJSON* json_daily_data_x_temperature_min = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "temperatureMin");
+        if (cJSON_IsNumber(json_daily_data_x_temperature_min)) {
+            forecasts[q].temperatureMin = json_daily_data_x_temperature_min->valuedouble;
         }
 
-        cJSON* json_currently_humidity = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "humidity");
-        if (cJSON_IsNumber(json_currently_humidity)) {
-            forecasts[q].humidity = json_currently_humidity->valuedouble;
+        cJSON* json_daily_data_x_humidity = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "humidity");
+        if (cJSON_IsNumber(json_daily_data_x_humidity)) {
+            forecasts[q].humidity = json_daily_data_x_humidity->valuedouble;
         }
 
-        cJSON* json_currently_pressure = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "pressure");
-        if (cJSON_IsNumber(json_currently_pressure)) {
-            forecasts[q].pressure = json_currently_pressure->valuedouble;
+        cJSON* json_daily_data_x_pressure = cJSON_GetObjectItemCaseSensitive(json_daily_data_x, "pressure");
+        if (cJSON_IsNumber(json_daily_data_x_pressure)) {
+            forecasts[q].pressure = json_daily_data_x_pressure->valuedouble;
         }
 
         q++;

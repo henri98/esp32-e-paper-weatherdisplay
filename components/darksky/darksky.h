@@ -25,7 +25,7 @@
 
 #define WEB_SERVER "api.darksky.net"
 #define WEB_PORT "443"
-#define WEB_URL "https://api.darksky.net/forecast/" CONFIG_DARKSKY_API_KEY "/" CONFIG_LATITUDE "," CONFIG_LONGITUDE "?lang=en&exclude=hourly,flag,currently&units=auto"
+#define WEB_URL "https://api.darksky.net/forecast/" CONFIG_DARKSKY_API_KEY "/" CONFIG_LATITUDE "," CONFIG_LONGITUDE "?lang=en&exclude=hourly,flag&units=auto"
 
 static const char* request = "GET " WEB_URL " HTTP/1.0\r\n"
                              "Host: " WEB_SERVER "\r\n"
@@ -46,11 +46,21 @@ typedef struct Forecasts {
     time_t time;
     char summary[50];
     char icon[20];
-    double temperatureHigh;
-    double temperatureLow;
+    double temperatureMax;
+    double temperatureMin;
     double humidity;
     int pressure;
 } Forecast;
+
+char summary[50];
+char icon[20];
+double temperature;
+double humidity;
+int pressure;
+double wind_speed;
+double wind_bearing;
+
+Forecast forecasts[8];
 
 void get_current_weather_task(void* pvParameters);
 

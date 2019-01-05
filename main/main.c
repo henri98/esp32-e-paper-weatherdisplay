@@ -36,6 +36,7 @@
 #include "Ubuntu18.c"
 #include "Ubuntu20.c"
 #include "Ubuntu22.c"
+#include "Ubuntu24.c"
 #include "Ubuntu8.c"
 
 #define COLORED 1
@@ -64,7 +65,14 @@ RTC_DATA_ATTR static int boot_count = 0;
 
 static int update_interval_seconds = 1 * 60 * 60;
 
-Forecast forecasts[8];
+extern Forecast forecasts[8];
+extern char summary[50];
+extern char icon[20];
+extern double temperature;
+extern double humidity;
+extern int pressure;
+extern double wind_speed;
+extern double wind_bearing;
 
 esp_err_t event_handler(void* ctx, system_event_t* event)
 {
@@ -144,7 +152,18 @@ static void obtain_time(void)
     }
 }
 
-#define forecastcount 5
+void draw_bitmap_mono_in_center(int x_dev, int x_number, int width, int y, const tImage* image)
+{
+    draw_bitmap_mono(((width / x_dev)) * (x_number) + (((width / x_dev) - image->width) / 2), y, image);
+}
+
+void draw_string_in_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font)
+{
+    int str_width_on_display = calculate_width(str, font);
+    draw_string(str, ((width / x_dev)) * (x_number) + (((width / x_dev) - str_width_on_display) / 2), y, font);
+}
+
+#define forecastcount 7
 
 static void update_display_task(void* pvParameters)
 {
@@ -152,6 +171,8 @@ static void update_display_task(void* pvParameters)
 
     time_t now;
     struct tm timeinfo;
+
+    char tmp_buff[30];
 
     if (epd4in2bInit() != 0) {
         ESP_LOGE(TAG, "e-Paper init failed");
@@ -161,8 +182,6 @@ static void update_display_task(void* pvParameters)
     ESP_LOGE(TAG, "e-Paper initialized");
 
     ClearFrame();
-
-    //DisplayFrame1(image_data_imgditherlicious, image_data_imgditherlicious);
 
     unsigned char* frame_black = (unsigned char*)malloc(400 * 300 / 8);
 
@@ -174,97 +193,106 @@ static void update_display_task(void* pvParameters)
 
     clear(UNCOLORED);
 
+    // Current weather
+
+    sprintf(tmp_buff, "%0.1f ºC", temperature);
+    draw_string_in_center(3, 0, 400, 60, tmp_buff, &Ubuntu24);
+    // draw_string(tmp_buff, (400 - 20 - temphighwidthondisplay), 40, &Ubuntu24);
+
+    const tImage* image = NULL;
+
+    if (strcmp(icon, "clear-day") == 0) {
+        image = &widaysunny;
+    } else if (strcmp(icon, "clear-night") == 0) {
+        image = &winightclear;
+    } else if (strcmp(icon, "rain") == 0) {
+        image = &wirain;
+    } else if (strcmp(icon, "snow") == 0) {
+        image = &wisnow;
+    } else if (strcmp(icon, "sleet") == 0) {
+        image = &wisleet;
+    } else if (strcmp(icon, "wind") == 0) {
+        image = &wistrongwind;
+    } else if (strcmp(icon, "fog") == 0) {
+        image = &wifog;
+    } else if (strcmp(icon, "cloudy") == 0) {
+        image = &wicloudy;
+    } else if (strcmp(icon, "partly-cloudy-day") == 0) {
+        image = &widaycloudy;
+    } else if (strcmp(icon, "partly-cloudy-night") == 0) {
+        image = &winightaltcloudy;
+    }
+
+    if (image != NULL) {
+        draw_bitmap_mono_in_center(1, 0, 350, 15, image);
+    }
+
+    int summarywidthondisplay = calculate_width(summary, &Ubuntu12);
+    draw_string(summary, (400 - summarywidthondisplay) / 2, 140, &Ubuntu12);
+
+    sprintf(tmp_buff, "Humidity: %d%%", (int)(humidity * 100));
+    int humiditywidthondisplay = calculate_width(tmp_buff, &Ubuntu12);
+    draw_string(tmp_buff, (400 - humiditywidthondisplay) / 2, 160, &Ubuntu12);
+
+    sprintf(tmp_buff, "Pressure:%d hPa", pressure);
+    int pressurewidthondisplay = calculate_width(tmp_buff, &Ubuntu12);
+    draw_string(tmp_buff, (400 - pressurewidthondisplay) / 2, 180, &Ubuntu12);
+
     for (size_t i = 0; i < (sizeof(forecasts) / sizeof(Forecast)); i++) {
         struct tm timeinfo;
         setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
         tzset();
         localtime_r(&forecasts[i].time, &timeinfo);
+        char day[20];
         char date[20];
-        strftime(date, sizeof(date), "%a %d - %m", &timeinfo);
-
-        char tmp_buff[30];
+        strftime(date, sizeof(date), "%d - %m", &timeinfo);
+        strftime(day, sizeof(date), "%A", &timeinfo);
 
         if (i == 0) {
-            // Today
+            sprintf(day, "Today");
+        }
 
-            int textmaxwidthondisplay = calculate_width("max:", &Ubuntu10);
-            draw_string("max:", (400 - 20 - textmaxwidthondisplay), 30, &Ubuntu10);
-            sprintf(tmp_buff, "%0.1f ºC", forecasts[i].temperatureHigh);
-            int temphighwidthondisplay = calculate_width(tmp_buff, &Ubuntu20);
-            draw_string(tmp_buff, (400 - 20 - temphighwidthondisplay), 40, &Ubuntu20);
+        if (i == 1) {
+            sprintf(day, "Tomorrow");
+        }
 
-            draw_string("min:", 20, 30, &Ubuntu10);
-            int templowewidthondisplay = calculate_width(tmp_buff, &Ubuntu20);
-            sprintf(tmp_buff, "%0.1f ºC", forecasts[i].temperatureLow);
-            draw_string(tmp_buff, 20, 40, &Ubuntu20);
+        draw_string_in_center(7, i, 400, 210, day, &Ubuntu10);
 
-            if (strcmp(forecasts[i].icon, "clear-day") == 0) {
-                draw_bitmap_mono(120, 0, &widaysunny);
-            } else if (strcmp(forecasts[i].icon, "clear-night") == 0) {
-                draw_bitmap_mono(120, 10, &winightclear);
-            } else if (strcmp(forecasts[i].icon, "rain") == 0) {
-                draw_bitmap_mono(120, -10, &wirain);
-            } else if (strcmp(forecasts[i].icon, "snow") == 0) {
-                draw_bitmap_mono(120, -10, &wisnow);
-            } else if (strcmp(forecasts[i].icon, "sleet") == 0) {
-                draw_bitmap_mono(120, -10, &wisleet);
-            } else if (strcmp(forecasts[i].icon, "wind") == 0) {
-                draw_bitmap_mono(120, -10, &wistrongwind);
-            } else if (strcmp(forecasts[i].icon, "fog") == 0) {
-                draw_bitmap_mono(120, -10, &wifog);
-            } else if (strcmp(forecasts[i].icon, "cloudy") == 0) {
-                draw_bitmap_mono(120, 10, &wicloudy);
-            } else if (strcmp(forecasts[i].icon, "partly-cloudy-day") == 0) {
-                draw_bitmap_mono(120, 15, &widaycloudy);
-            } else if (strcmp(forecasts[i].icon, "partly-cloudy-night") == 0) {
-                draw_bitmap_mono(120, 15, &winightaltcloudy);
-            }
+        draw_string_in_center(7, i, 400, 225, date, &Ubuntu10);
 
-            int summarywidthondisplay = calculate_width(forecasts[i].summary, &Ubuntu12);
-            draw_string(forecasts[i].summary, (400 - summarywidthondisplay) / 2, 140, &Ubuntu12);
+        sprintf(tmp_buff, "%d - %d ºC", (int)round(forecasts[i].temperatureMin), (int)round(forecasts[i].temperatureMax));
+        draw_string_in_center(7, i, 400, 240, tmp_buff, &Ubuntu10);
 
-            sprintf(tmp_buff, "Humidity: %d%%", (int)(forecasts[i].humidity * 100));
-            int humiditywidthondisplay = calculate_width(tmp_buff, &Ubuntu12);
-            draw_string(tmp_buff, (400 - humiditywidthondisplay) / 2, 160, &Ubuntu12);
+        const tImage* forecast_image = NULL;
 
-            sprintf(tmp_buff, "Pressure:%d hPa", forecasts[i].pressure);
-            int pressurewidthondisplay = calculate_width(tmp_buff, &Ubuntu12);
-            draw_string(tmp_buff, (400 - pressurewidthondisplay) / 2, 180, &Ubuntu12);
+        if (strcmp(forecasts[i].icon, "clear-day") == 0) {
+            forecast_image = &daysunny;
+        } else if (strcmp(forecasts[i].icon, "clear-night") == 0) {
+            forecast_image = &nightclear;
+        } else if (strcmp(forecasts[i].icon, "rain") == 0) {
+            forecast_image = &rain;
+        } else if (strcmp(forecasts[i].icon, "snow") == 0) {
+            forecast_image = &snow;
+        } else if (strcmp(forecasts[i].icon, "sleet") == 0) {
+            forecast_image = &sleet;
+        } else if (strcmp(forecasts[i].icon, "wind") == 0) {
+            forecast_image = &strongwind;
+        } else if (strcmp(forecasts[i].icon, "fog") == 0) {
+            forecast_image = &fog;
+        } else if (strcmp(forecasts[i].icon, "cloudy") == 0) {
+            forecast_image = &cloudy;
+        } else if (strcmp(forecasts[i].icon, "partly-cloudy-day") == 0) {
+            forecast_image = &daycloudy;
+        } else if (strcmp(forecasts[i].icon, "partly-cloudy-night") == 0) {
+            forecast_image = &nightaltcloudy;
+        }
 
-        } else {
-            sprintf(tmp_buff, "%0.1f - %0.1f ºC", forecasts[i].temperatureLow, forecasts[i].temperatureHigh);
-
-            int forecastswidthondisplay = calculate_width(tmp_buff, &Ubuntu10);
-            draw_string(tmp_buff, ((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - forecastswidthondisplay) / 2), 240, &Ubuntu10);
-
-            int datewidthondisplay = calculate_width(date, &Ubuntu10);
-            draw_string(date, ((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - datewidthondisplay) / 2), 230, &Ubuntu10);
-
-            if (strcmp(forecasts[i].icon, "clear-day") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &daysunny);
-            } else if (strcmp(forecasts[i].icon, "clear-night") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &nightclear);
-            } else if (strcmp(forecasts[i].icon, "rain") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &rain);
-            } else if (strcmp(forecasts[i].icon, "snow") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &snow);
-            } else if (strcmp(forecasts[i].icon, "sleet") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &sleet);
-            } else if (strcmp(forecasts[i].icon, "wind") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &strongwind);
-            } else if (strcmp(forecasts[i].icon, "fog") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &fog);
-            } else if (strcmp(forecasts[i].icon, "cloudy") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &cloudy);
-            } else if (strcmp(forecasts[i].icon, "partly-cloudy-day") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &daycloudy);
-            } else if (strcmp(forecasts[i].icon, "partly-cloudy-night") == 0) {
-                draw_bitmap_mono(((400 / forecastcount)) * (i - 1) + (((400 / forecastcount) - 40) / 2), 255, &nightaltcloudy);
-            }
+        if (forecast_image != NULL) {
+            draw_bitmap_mono_in_center(7, i, 400, 255, forecast_image);
         }
     }
 
-    draw_string("Garderen", 345, 0, &Ubuntu12);
+    draw_string("Garderen, The Netherlands", 240, 0, &Ubuntu12);
 
     time(&now);
     char strftime_buf[64];
@@ -278,14 +306,14 @@ static void update_display_task(void* pvParameters)
     draw_string(strftime_buf, 2, 0, &Ubuntu12);
 
     draw_horizontal_line(0, 14, 400, COLORED);
-    draw_horizontal_line(0, 220, 400, COLORED);
+    draw_horizontal_line(0, 200, 400, COLORED);
     draw_horizontal_line(0, 0, 400, COLORED);
     draw_vertical_line(0, 0, 300, COLORED);
     draw_horizontal_line(0, 299, 400, COLORED);
     draw_vertical_line(399, 0, 300, COLORED);
 
     for (size_t i = 1; i < forecastcount; i++) {
-        draw_vertical_line((400 / forecastcount * i), 220, 138, COLORED);
+        draw_vertical_line((400 / forecastcount * i), 200, 138, COLORED);
     }
 
     // /* Display the frame buffer */
