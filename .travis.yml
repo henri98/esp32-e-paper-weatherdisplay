@@ -9,6 +9,9 @@ addons:
       - gperf
       - python
       - python-serial
+      - python-future
+      - python-cryptography
+      - python-pyparsing
 
 before_install:
   # Save path to the git respository
