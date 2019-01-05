@@ -133,6 +133,11 @@ void get_current_weather_task(void* pvParameters)
         wind_bearing = json_currently_wind_bearing->valuedouble;
     }
 
+    cJSON* json_currently_precip_probability = cJSON_GetObjectItemCaseSensitive(json_currently, "precipProbability");
+    if (cJSON_IsNumber(json_currently_precip_probability)) {
+        precip_probability = json_currently_precip_probability->valuedouble;
+    }
+
     // Get the forecast weather data from the daily object
     cJSON* json_daily = cJSON_GetObjectItemCaseSensitive(json, "daily");
     cJSON* json_daily_data = cJSON_GetObjectItemCaseSensitive(json_daily, "data");

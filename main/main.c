@@ -73,6 +73,7 @@ extern double humidity;
 extern int pressure;
 extern double wind_speed;
 extern double wind_bearing;
+extern double precip_probability;
 
 esp_err_t event_handler(void* ctx, system_event_t* event)
 {
@@ -163,6 +164,13 @@ void draw_string_in_center(int x_dev, int x_number, int width, int y, const char
     draw_string(str, ((width / x_dev)) * (x_number) + (((width / x_dev) - str_width_on_display) / 2), y, font);
 }
 
+const char* deg_to_compass(int degrees)
+{
+    int val = floor((degrees / 22.5) + 0.5);
+    const char* arr[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW" };
+    return arr[(val % 16)];
+}
+
 #define forecastcount 7
 
 static void update_display_task(void* pvParameters)
@@ -194,11 +202,6 @@ static void update_display_task(void* pvParameters)
     clear(UNCOLORED);
 
     // Current weather
-
-    sprintf(tmp_buff, "%0.1f ºC", temperature);
-    draw_string_in_center(3, 0, 400, 60, tmp_buff, &Ubuntu24);
-    // draw_string(tmp_buff, (400 - 20 - temphighwidthondisplay), 40, &Ubuntu24);
-
     const tImage* image = NULL;
 
     if (strcmp(icon, "clear-day") == 0) {
@@ -224,19 +227,25 @@ static void update_display_task(void* pvParameters)
     }
 
     if (image != NULL) {
-        draw_bitmap_mono_in_center(1, 0, 350, 15, image);
+        draw_bitmap_mono_in_center(2, 0, 500, 40, image);
     }
 
-    int summarywidthondisplay = calculate_width(summary, &Ubuntu12);
-    draw_string(summary, (400 - summarywidthondisplay) / 2, 140, &Ubuntu12);
+    sprintf(tmp_buff, "%0.1f º", temperature);
+    draw_string_in_center(3, 0, 400, 45, tmp_buff, &Ubuntu24);
+
+    draw_string_in_center(2, 1, 400, 65, summary, &Ubuntu12);
 
     sprintf(tmp_buff, "Humidity: %d%%", (int)(humidity * 100));
-    int humiditywidthondisplay = calculate_width(tmp_buff, &Ubuntu12);
-    draw_string(tmp_buff, (400 - humiditywidthondisplay) / 2, 160, &Ubuntu12);
+    draw_string_in_center(2, 1, 400, 85, tmp_buff, &Ubuntu12);
 
     sprintf(tmp_buff, "Pressure:%d hPa", pressure);
-    int pressurewidthondisplay = calculate_width(tmp_buff, &Ubuntu12);
-    draw_string(tmp_buff, (400 - pressurewidthondisplay) / 2, 180, &Ubuntu12);
+    draw_string_in_center(2, 1, 400, 105, tmp_buff, &Ubuntu12);
+
+    sprintf(tmp_buff, "Wind :%d m/s (%s)", (int)round(wind_speed), deg_to_compass(wind_bearing));
+    draw_string_in_center(2, 1, 400, 125, tmp_buff, &Ubuntu12);
+
+    sprintf(tmp_buff, "Chance of Precipitation : %d%%", (int)round(precip_probability * 100));
+    draw_string_in_center(2, 1, 400, 145, tmp_buff, &Ubuntu12);
 
     for (size_t i = 0; i < (sizeof(forecasts) / sizeof(Forecast)); i++) {
         struct tm timeinfo;
@@ -260,7 +269,7 @@ static void update_display_task(void* pvParameters)
 
         draw_string_in_center(7, i, 400, 225, date, &Ubuntu10);
 
-        sprintf(tmp_buff, "%d - %d ºC", (int)round(forecasts[i].temperatureMin), (int)round(forecasts[i].temperatureMax));
+        sprintf(tmp_buff, "%d - %d º", (int)round(forecasts[i].temperatureMin), (int)round(forecasts[i].temperatureMax));
         draw_string_in_center(7, i, 400, 240, tmp_buff, &Ubuntu10);
 
         const tImage* forecast_image = NULL;

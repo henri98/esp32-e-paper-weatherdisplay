@@ -25,7 +25,8 @@
 
 #define WEB_SERVER "api.darksky.net"
 #define WEB_PORT "443"
-#define WEB_URL "https://api.darksky.net/forecast/" CONFIG_DARKSKY_API_KEY "/" CONFIG_LATITUDE "," CONFIG_LONGITUDE "?lang=en&exclude=hourly,flag&units=auto"
+#define WEB_URL "https://api.darksky.net/forecast/" CONFIG_DARKSKY_API_KEY "/" CONFIG_LATITUDE "," CONFIG_LONGITUDE "?lang=en&exclude=hourly,flag,minutely&units=auto"
+// #define WEB_URL "https://api.darksky.net/forecast/d1e8cbd61876b713aec0eeed353e0181/40.653,-73.968?lang=en&exclude=hourly,flag,minutely&units=auto"
 
 static const char* request = "GET " WEB_URL " HTTP/1.0\r\n"
                              "Host: " WEB_SERVER "\r\n"
@@ -59,6 +60,7 @@ double humidity;
 int pressure;
 double wind_speed;
 double wind_bearing;
+double precip_probability;
 
 Forecast forecasts[8];
 
