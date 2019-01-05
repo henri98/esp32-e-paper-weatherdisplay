@@ -44,6 +44,8 @@ install:
   - export IDF_PATH=~/esp/esp-idf
 
 script:
+    gperf -v 
+
   # Go back to the git repository
   - cd $PROJECT_PATH
   # Update configuration so that kconfig doesn't start interactive mode
