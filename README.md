@@ -1,6 +1,5 @@
 # esp32-e-paper-weatherdisplay
-[![Build Status](https://travis-ci.com/henri98/esp32-e-paper-weatherdisplay.svg?branch=master)](https://travis-ci.com/henri98/esp32-e-paper-weatherdisplay)![](https://img.shields.io/github/stars/henri98/esp32-e-paper-weatherdisplay.svg)![](https://img.shields.io/github/license/henri98/esp32-e-paper-weatherdisplay.svg)
-
+[![Build Status](https://travis-ci.com/henri98/esp32-e-paper-weatherdisplay.svg?branch=master)](https://travis-ci.com/henri98/esp32-e-paper-weatherdisplay) ![](https://img.shields.io/github/stars/henri98/esp32-e-paper-weatherdisplay.svg) ![](https://img.shields.io/github/license/henri98/esp32-e-paper-weatherdisplay.svg)
 
 An ESP32 and 4.2" ePaper Display reads Dark Sky weather API and displays the weather using the [Espressif IoT Development Framework](https://github.com/espressif/esp-idf)
 
@@ -17,25 +16,25 @@ git clone https://github.com/henri98/esp32-e-paper-weatherdisplay.git
 
 ### Build the project 
 
-Navigate to the project folder
+Navigate to the project folder:
 
 ```bash
 cd esp32-e-paper-weatherdisplay
 ```
 
-Configure the project
+Configure the project:
 
 ```bash
 make menuconfig 
 ```
 The configuration menu will be displayed. Navigate to WiFi Configuration and enter credentials to connect to the WiFi. Navigate to Dark Sky configuration and configure the Latitude, Longitude and the Dark Sky API key. You can get an API key [here](https://darksky.net/dev). With an API key you can make up to 1000 free requests, so enough to keep the weather display up to date.  
 
-Flash the firmware on the esp32
+Build and flash the firmware on the esp32:
 
 ```bash
 make flash 
 ```
-To monitor the programm use
+To monitor the programm use:
 ```bash
 make monitor 
 ```
@@ -43,3 +42,8 @@ make monitor
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
+## Images 
+
+![](https://user-images.githubusercontent.com/9615443/50729936-d4f74780-1142-11e9-820f-21e6e441b01d.jpeg)
+![](https://user-images.githubusercontent.com/9615443/50729937-daed2880-1142-11e9-86ac-ba72a3be16af.jpeg)
