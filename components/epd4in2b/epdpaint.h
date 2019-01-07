@@ -3,7 +3,6 @@
 
 #include "esp_log.h"
 #include "image.h"
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -28,9 +27,11 @@ void draw_filled_rectangle(int x0, int y0, int x1, int y1, int colored);
 void draw_circle(int x, int y, int radius, int colored);
 void draw_filled_circle(int x, int y, int radius, int colored);
 void draw_bitmap_mono(int x, int y, const tImage* image);
+void draw_bitmap_mono_in_center(int x_dev, int x_number, int width, int y, const tImage* image);
 const tChar* find_char_by_code(int code, const tFont* font);
 int utf8_next_char(const char* str, int start, int* resultCode, int* nextIndex);
 void draw_string(const char* str, int x, int y, const tFont* font);
+void draw_string_in_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font);
 int calculate_width(const char* str, const tFont* font);
 
 #endif

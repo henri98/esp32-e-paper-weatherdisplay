@@ -9,6 +9,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -64,6 +65,7 @@ double precip_probability;
 
 Forecast forecasts[8];
 
+const char* deg_to_compass(int degrees);
 void get_current_weather_task(void* pvParameters);
 
 #endif // DARKSKY_H

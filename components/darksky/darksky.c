@@ -79,6 +79,13 @@ exit:
     esp_tls_conn_delete(tls);
 }
 
+const char* deg_to_compass(int degrees)
+{
+    int val = floor((degrees / 22.5) + 0.5);
+    const char* arr[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW" };
+    return arr[(val % 16)];
+}
+
 void get_current_weather_task(void* pvParameters)
 {
 

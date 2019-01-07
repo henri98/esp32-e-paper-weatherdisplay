@@ -79,7 +79,7 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
 {
     switch (event->event_id) {
     case SYSTEM_EVENT_STA_START:
-        esp_wifi_connect();
+        ESP_ERROR_CHECK(esp_wifi_connect());
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
         xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
@@ -87,7 +87,7 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
     case SYSTEM_EVENT_STA_DISCONNECTED:
         /* This is a workaround as ESP32 WiFi libs don't currently
            auto-reassociate. */
-        esp_wifi_connect();
+        ESP_ERROR_CHECK(esp_wifi_connect());
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         break;
     default:
@@ -102,7 +102,6 @@ static void initialise_wifi(void)
     tcpip_adapter_init();
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
@@ -110,7 +109,12 @@ static void initialise_wifi(void)
         .sta = {
             .ssid = CONFIG_ESP_WIFI_SSID,
             .password = CONFIG_ESP_WIFI_PASSWORD,
-            .bssid_set = false }
+            .bssid_set = false,
+            .scan_method = WIFI_FAST_SCAN,
+            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
+            .threshold.rssi = -127,
+            .threshold.authmode = WIFI_AUTH_OPEN,
+        }
     };
     ESP_LOGI(TAG, "Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -136,8 +140,7 @@ static void initialize_sntp(void)
 static void obtain_time(void)
 {
     static const char* TAG = "obtain_time";
-    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT,
-        false, true, portMAX_DELAY);
+    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
     initialize_sntp();
 
     // wait for time to be set
@@ -152,26 +155,6 @@ static void obtain_time(void)
         localtime_r(&now, &timeinfo);
     }
 }
-
-void draw_bitmap_mono_in_center(int x_dev, int x_number, int width, int y, const tImage* image)
-{
-    draw_bitmap_mono(((width / x_dev)) * (x_number) + (((width / x_dev) - image->width) / 2), y, image);
-}
-
-void draw_string_in_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font)
-{
-    int str_width_on_display = calculate_width(str, font);
-    draw_string(str, ((width / x_dev)) * (x_number) + (((width / x_dev) - str_width_on_display) / 2), y, font);
-}
-
-const char* deg_to_compass(int degrees)
-{
-    int val = floor((degrees / 22.5) + 0.5);
-    const char* arr[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW" };
-    return arr[(val % 16)];
-}
-
-#define forecastcount 7
 
 static void update_display_task(void* pvParameters)
 {
@@ -321,8 +304,8 @@ static void update_display_task(void* pvParameters)
     draw_horizontal_line(0, 299, 400, COLORED);
     draw_vertical_line(399, 0, 300, COLORED);
 
-    for (size_t i = 1; i < forecastcount; i++) {
-        draw_vertical_line((400 / forecastcount * i), 200, 138, COLORED);
+    for (size_t i = 1; i < 7; i++) {
+        draw_vertical_line((400 / 7 * i), 200, 138, COLORED);
     }
 
     // /* Display the frame buffer */
@@ -366,27 +349,28 @@ void app_main(void)
     ESP_LOGI(TAG, "Boot count: %d", boot_count);
 
     ESP_ERROR_CHECK(nvs_flash_init());
-    initialise_wifi();
 
     xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, &forecasts, 5, &get_current_weather_task_handler);
-
     xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
+
+    initialise_wifi();
+
     vTaskDelay(10000 / portTICK_PERIOD_MS);
 
     xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
 
     vTaskDelay(10000 / portTICK_PERIOD_MS);
-    deinitialize_wifi();
+    // deinitialize_wifi();
 
-    Sleep();
+    // Sleep();
 
-    time_t now;
-    struct tm timeinfo;
+    // time_t now;
+    // struct tm timeinfo;
 
-    time(&now);
-    localtime_r(&now, &timeinfo);
+    // time(&now);
+    // localtime_r(&now, &timeinfo);
 
-    const int deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
-    ESP_LOGI(TAG, "Entering deep sleep for %d seconds", deep_sleep_sec);
-    esp_deep_sleep(1000000LL * deep_sleep_sec);
+    // const int deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
+    // ESP_LOGI(TAG, "Entering deep sleep for %d seconds", deep_sleep_sec);
+    // esp_deep_sleep(1000000LL * deep_sleep_sec);
 }
