@@ -1,4 +1,3 @@
-
 #include "esp_event_loop.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -87,7 +86,7 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
     case SYSTEM_EVENT_STA_DISCONNECTED:
         /* This is a workaround as ESP32 WiFi libs don't currently
            auto-reassociate. */
-        ESP_ERROR_CHECK(esp_wifi_connect());
+        esp_wifi_connect();
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         break;
     default:
@@ -350,27 +349,27 @@ void app_main(void)
 
     ESP_ERROR_CHECK(nvs_flash_init());
 
+    initialise_wifi();
+
     xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, &forecasts, 5, &get_current_weather_task_handler);
     xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
-
-    initialise_wifi();
 
     vTaskDelay(10000 / portTICK_PERIOD_MS);
 
     xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
 
     vTaskDelay(10000 / portTICK_PERIOD_MS);
-    // deinitialize_wifi();
+    deinitialize_wifi();
 
-    // Sleep();
+    Sleep();
 
-    // time_t now;
-    // struct tm timeinfo;
+    time_t now;
+    struct tm timeinfo;
 
-    // time(&now);
-    // localtime_r(&now, &timeinfo);
+    time(&now);
+    localtime_r(&now, &timeinfo);
 
-    // const int deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
-    // ESP_LOGI(TAG, "Entering deep sleep for %d seconds", deep_sleep_sec);
-    // esp_deep_sleep(1000000LL * deep_sleep_sec);
+    const int deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
+    ESP_LOGI(TAG, "Entering deep sleep for %d seconds", deep_sleep_sec);
+    esp_deep_sleep(1000000LL * deep_sleep_sec);
 }
