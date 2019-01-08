@@ -208,10 +208,21 @@ void draw_bitmap_mono_in_center(int x_dev, int x_number, int width, int y, const
     draw_bitmap_mono(((width / x_dev)) * (x_number) + (((width / x_dev) - image->width) / 2), y, image);
 }
 
-void draw_string_in_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font)
+void draw_string_in_grid_align_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font)
 {
     int str_width_on_display = calculate_width(str, font);
     draw_string(str, ((width / x_dev)) * (x_number) + (((width / x_dev) - str_width_on_display) / 2), y, font);
+}
+
+void draw_string_in_grid_align_left(int x_dev, int x_number, int offset, int width, int y, const char* str, const tFont* font)
+{
+    int str_width_on_display = calculate_width(str, font);
+    draw_string(str, ((width / x_dev)) * (x_number) + (((width / x_dev) - str_width_on_display) - offset), y, font);
+}
+
+void draw_string_in_grid_align_right(int x_dev, int x_number, int offset, int width, int y, const char* str, const tFont* font)
+{
+    draw_string(str, ((width / x_dev)) * (x_number) + offset, y, font);
 }
 
 int calculate_width(const char* str, const tFont* font)

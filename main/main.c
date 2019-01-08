@@ -95,7 +95,7 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
     return ESP_OK;
 }
 
-static void initialise_wifi(void)
+static int initialise_wifi(void)
 {
     static const char* TAG = "initialise_wifi";
     tcpip_adapter_init();
@@ -109,10 +109,6 @@ static void initialise_wifi(void)
             .ssid = CONFIG_ESP_WIFI_SSID,
             .password = CONFIG_ESP_WIFI_PASSWORD,
             .bssid_set = false,
-            .scan_method = WIFI_FAST_SCAN,
-            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
-            .threshold.rssi = -127,
-            .threshold.authmode = WIFI_AUTH_OPEN,
         }
     };
     ESP_LOGI(TAG, "Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
@@ -120,6 +116,23 @@ static void initialise_wifi(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_ESP_DNS_NAME));
+
+    TickType_t ticks = xTaskGetTickCount();
+
+    while (xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY) != CONNECTED_BIT) {
+        ESP_LOGI(TAG, "...");
+
+        if (ticks > (ticks + 2000)) {
+            ESP_LOGI(TAG, "test");
+            break;
+        }
+    }
+
+    // if (ticks > (ticks + (2000 / portTICK_PERIOD_MS))) {
+    //     return 1;
+    // }
+
+    return 0;
 }
 
 static void deinitialize_wifi()
@@ -213,21 +226,21 @@ static void update_display_task(void* pvParameters)
     }
 
     sprintf(tmp_buff, "%0.1f º", temperature);
-    draw_string_in_center(3, 0, 400, 45, tmp_buff, &Ubuntu24);
+    draw_string_in_grid_align_center(3, 0, 400, 45, tmp_buff, &Ubuntu24);
 
-    draw_string_in_center(2, 1, 400, 65, summary, &Ubuntu12);
+    draw_string_in_grid_align_center(2, 1, 400, 65, summary, &Ubuntu12);
 
     sprintf(tmp_buff, "Humidity: %d%%", (int)(humidity * 100));
-    draw_string_in_center(2, 1, 400, 85, tmp_buff, &Ubuntu12);
+    draw_string_in_grid_align_center(2, 1, 400, 85, tmp_buff, &Ubuntu12);
 
     sprintf(tmp_buff, "Pressure:%d hPa", pressure);
-    draw_string_in_center(2, 1, 400, 105, tmp_buff, &Ubuntu12);
+    draw_string_in_grid_align_center(2, 1, 400, 105, tmp_buff, &Ubuntu12);
 
     sprintf(tmp_buff, "Wind :%d m/s (%s)", (int)round(wind_speed), deg_to_compass(wind_bearing));
-    draw_string_in_center(2, 1, 400, 125, tmp_buff, &Ubuntu12);
+    draw_string_in_grid_align_center(2, 1, 400, 125, tmp_buff, &Ubuntu12);
 
     sprintf(tmp_buff, "Chance of Precipitation : %d%%", (int)round(precip_probability * 100));
-    draw_string_in_center(2, 1, 400, 145, tmp_buff, &Ubuntu12);
+    draw_string_in_grid_align_center(2, 1, 400, 145, tmp_buff, &Ubuntu12);
 
     for (size_t i = 0; i < (sizeof(forecasts) / sizeof(Forecast)); i++) {
         struct tm timeinfo;
@@ -247,12 +260,12 @@ static void update_display_task(void* pvParameters)
             sprintf(day, "Tomorrow");
         }
 
-        draw_string_in_center(7, i, 400, 210, day, &Ubuntu10);
+        draw_string_in_grid_align_center(7, i, 400, 210, day, &Ubuntu10);
 
-        draw_string_in_center(7, i, 400, 225, date, &Ubuntu10);
+        draw_string_in_grid_align_center(7, i, 400, 225, date, &Ubuntu10);
 
         sprintf(tmp_buff, "%d - %d º", (int)round(forecasts[i].temperatureMin), (int)round(forecasts[i].temperatureMax));
-        draw_string_in_center(7, i, 400, 240, tmp_buff, &Ubuntu10);
+        draw_string_in_grid_align_center(7, i, 400, 240, tmp_buff, &Ubuntu10);
 
         const tImage* forecast_image = NULL;
 
@@ -283,7 +296,7 @@ static void update_display_task(void* pvParameters)
         }
     }
 
-    draw_string("Garderen, The Netherlands", 240, 0, &Ubuntu12);
+    draw_string_in_grid_align_left(1, 0, 2, 400, 0, "Garderen, The Netherlands", &Ubuntu12);
 
     time(&now);
     char strftime_buf[64];
@@ -293,8 +306,7 @@ static void update_display_task(void* pvParameters)
     localtime_r(&now, &timeinfo);
     strftime(strftime_buf, sizeof(strftime_buf), "Last updated: %H:%M", &timeinfo);
 
-    // DrawStringAt(2, 2, strftime_buf, &Font12, COLORED);
-    draw_string(strftime_buf, 2, 0, &Ubuntu12);
+    draw_string_in_grid_align_right(1, 0, 2, 400, 0, strftime_buf, &Ubuntu12);
 
     draw_horizontal_line(0, 14, 400, COLORED);
     draw_horizontal_line(0, 200, 400, COLORED);
@@ -349,17 +361,17 @@ void app_main(void)
 
     ESP_ERROR_CHECK(nvs_flash_init());
 
-    initialise_wifi();
+    if (!initialise_wifi()) {
+        xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, &forecasts, 5, &get_current_weather_task_handler);
+        xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
 
-    xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, &forecasts, 5, &get_current_weather_task_handler);
-    xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
 
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
+        xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
 
-    xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
-
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
-    deinitialize_wifi();
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        deinitialize_wifi();
+    }
 
     Sleep();
 

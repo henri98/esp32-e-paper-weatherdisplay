@@ -31,7 +31,9 @@ void draw_bitmap_mono_in_center(int x_dev, int x_number, int width, int y, const
 const tChar* find_char_by_code(int code, const tFont* font);
 int utf8_next_char(const char* str, int start, int* resultCode, int* nextIndex);
 void draw_string(const char* str, int x, int y, const tFont* font);
-void draw_string_in_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font);
+void draw_string_in_grid_align_center(int x_dev, int x_number, int width, int y, const char* str, const tFont* font);
+void draw_string_in_grid_align_left(int x_dev, int x_number, int offset, int width, int y, const char* str, const tFont* font);
+void draw_string_in_grid_align_right(int x_dev, int x_number, int offset, int width, int y, const char* str, const tFont* font);
 int calculate_width(const char* str, const tFont* font);
 
 #endif
