@@ -47,18 +47,18 @@
 #define READ_OTP 0xA2
 #define POWER_SAVING 0xE3
 
-int epd4in2bInit(void);
-void SendCommand(unsigned char command);
-void SendData(unsigned char data);
-void WaitUntilIdle(void);
-void Reset(void);
-void SetPartialWindow(const unsigned char* buffer_black, const unsigned char* buffer_red, int x, int y, int w, int l);
-void SetPartialWindowBlack(const unsigned char* buffer_black, int x, int y, int w, int l);
-void SetPartialWindowRed(const unsigned char* buffer_red, int x, int y, int w, int l);
-void DisplayFrame1(const unsigned char* frame_black, const unsigned char* frame_red);
-void DisplayFrame(void);
-void ClearFrame(void);
-void Sleep(void);
+int epd4in2b_init(void);
+void send_command(unsigned char command);
+void send_data(unsigned char data);
+void wait_untile_idle(void);
+void reset(void);
+void set_partial_window(const unsigned char* buffer_black, const unsigned char* buffer_red, int x, int y, int w, int l);
+void set_partial_window_black(const unsigned char* buffer_black, int x, int y, int w, int l);
+void set_partial_window_red(const unsigned char* buffer_red, int x, int y, int w, int l);
+void display_frame(const unsigned char* frame_black, const unsigned char* frame_red);
+void refresh_display(void);
+void clear_frame(void);
+void epd4in2_sleep(void);
 
 #endif /* EPD4IN2_H */
 

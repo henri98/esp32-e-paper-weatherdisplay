@@ -117,22 +117,14 @@ static int initialise_wifi(void)
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_ESP_DNS_NAME));
 
-    TickType_t ticks = xTaskGetTickCount();
+    EventBits_t result = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, 5000 / portTICK_PERIOD_MS);
 
-    while (xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY) != CONNECTED_BIT) {
-        ESP_LOGI(TAG, "...");
-
-        if (ticks > (ticks + 2000)) {
-            ESP_LOGI(TAG, "test");
-            break;
-        }
+    if (result != CONNECTED_BIT) {
+        ESP_LOGE(TAG, "WiFi not connected.");
+        return 1;
+    } else {
+        return 0;
     }
-
-    // if (ticks > (ticks + (2000 / portTICK_PERIOD_MS))) {
-    //     return 1;
-    // }
-
-    return 0;
 }
 
 static void deinitialize_wifi()
@@ -177,14 +169,14 @@ static void update_display_task(void* pvParameters)
 
     char tmp_buff[30];
 
-    if (epd4in2bInit() != 0) {
+    if (epd4in2b_init() != 0) {
         ESP_LOGE(TAG, "e-Paper init failed");
         vTaskDelay(2000 / portTICK_RATE_MS);
         return;
     }
     ESP_LOGE(TAG, "e-Paper initialized");
 
-    ClearFrame();
+    clear_frame();
 
     unsigned char* frame_black = (unsigned char*)malloc(400 * 300 / 8);
 
@@ -320,7 +312,9 @@ static void update_display_task(void* pvParameters)
     }
 
     // /* Display the frame buffer */
-    DisplayFrame1(NULL, frame_black);
+    display_frame(NULL, frame_black);
+
+    epd4in2_sleep();
 
     vTaskDelete(NULL);
 }
@@ -361,8 +355,10 @@ void app_main(void)
 
     ESP_ERROR_CHECK(nvs_flash_init());
 
+    int deep_sleep_sec = 3600;
+
     if (!initialise_wifi()) {
-        xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, &forecasts, 5, &get_current_weather_task_handler);
+        xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, NULL, 5, &get_current_weather_task_handler);
         xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
 
         vTaskDelay(10000 / portTICK_PERIOD_MS);
@@ -371,17 +367,16 @@ void app_main(void)
 
         vTaskDelay(10000 / portTICK_PERIOD_MS);
         deinitialize_wifi();
+
+        time_t now;
+        struct tm timeinfo;
+
+        time(&now);
+        localtime_r(&now, &timeinfo);
+
+        deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
     }
 
-    Sleep();
-
-    time_t now;
-    struct tm timeinfo;
-
-    time(&now);
-    localtime_r(&now, &timeinfo);
-
-    const int deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
     ESP_LOGI(TAG, "Entering deep sleep for %d seconds", deep_sleep_sec);
     esp_deep_sleep(1000000LL * deep_sleep_sec);
 }

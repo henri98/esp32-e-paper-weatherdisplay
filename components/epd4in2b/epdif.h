@@ -48,10 +48,10 @@
 
 spi_device_handle_t spi;
 
-int IfInit(void);
-void DigitalWrite(gpio_num_t pin, int value);
-int DigitalRead(gpio_num_t pin);
-void DelayMs(unsigned int delaytime);
-void SpiTransfer(unsigned char data);
+int ifinit(void);
+void digital_write(gpio_num_t pin, int value);
+int digital_read(gpio_num_t pin);
+void delay_ms(unsigned int delaytime);
+void spi_transfer(unsigned char data);
 
 #endif

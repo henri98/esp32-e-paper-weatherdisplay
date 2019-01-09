@@ -28,24 +28,24 @@
 #include "epdif.h"
 #include "esp_log.h"
 
-void DigitalWrite(gpio_num_t pin, int value)
+void digital_write(gpio_num_t pin, int value)
 {
     // ESP_LOGI("EPDIF", "Set Pin %i: %i", pin, value);
     gpio_set_level(pin, value);
 }
 
-int DigitalRead(gpio_num_t pin)
+int digital_read(gpio_num_t pin)
 {
     int level = gpio_get_level(pin);
     return level;
 }
 
-void DelayMs(unsigned int delaytime)
+void delay_ms(unsigned int delaytime)
 {
     vTaskDelay(delaytime / portTICK_RATE_MS);
 }
 
-void SpiTransfer(unsigned char data)
+void spi_transfer(unsigned char data)
 {
     esp_err_t ret;
     spi_transaction_t t = {
@@ -61,7 +61,7 @@ void SpiTransfer(unsigned char data)
     assert(ret == ESP_OK); //Should have had no issues.
 }
 
-int IfInit(void)
+int ifinit(void)
 {
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,
