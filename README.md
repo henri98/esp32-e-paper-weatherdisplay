@@ -43,7 +43,14 @@ make monitor
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
+##Icons and fonts
+
+The images used are from https://github.com/erikflowers/weather-icons. The images are licensed under [SIL OFL 1.1](http://scripts.sil.org/OFL)
+
+
+
+
 ## Images 
 
-![](https://user-images.githubusercontent.com/9615443/50729936-d4f74780-1142-11e9-820f-21e6e441b01d.jpeg)
-![](https://user-images.githubusercontent.com/9615443/50729937-daed2880-1142-11e9-86ac-ba72a3be16af.jpeg)
+![](https://user-images.githubusercontent.com/9615443/50922221-40465f80-144a-11e9-85fb-8d3b429d94a6.jpeg)
+![](https://user-images.githubusercontent.com/9615443/50922222-40465f80-144a-11e9-8928-c48453101c8a.jpeg)
