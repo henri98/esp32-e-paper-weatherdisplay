@@ -62,7 +62,11 @@ const int CONNECTED_BIT = BIT0;
 */
 RTC_DATA_ATTR static int boot_count = 0;
 
-static int update_interval_seconds = 1 * 60 * 60;
+/**
+ * place houres you want your display to be updated in this array
+ * you can add values from 0 - 23 ascending
+ */
+static int update_hours[] = { 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23 };
 
 extern Forecast forecasts[8];
 extern char summary[50];
@@ -117,7 +121,7 @@ static int initialise_wifi(void)
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_ESP_DNS_NAME));
 
-    EventBits_t result = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, 5000 / portTICK_PERIOD_MS);
+    EventBits_t result = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, 10000 / portTICK_PERIOD_MS);
 
     if (result != CONNECTED_BIT) {
         ESP_LOGE(TAG, "WiFi not connected.");
@@ -296,7 +300,7 @@ static void update_display_task(void* pvParameters)
     setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
     tzset();
     localtime_r(&now, &timeinfo);
-    strftime(strftime_buf, sizeof(strftime_buf), "Last updated: %H:%M", &timeinfo);
+    strftime(strftime_buf, sizeof(strftime_buf), "Last updated: %e %b %H:%M", &timeinfo);
 
     draw_string_in_grid_align_right(1, 0, 2, 400, 0, strftime_buf, &Ubuntu12);
 
@@ -355,7 +359,7 @@ void app_main(void)
 
     ESP_ERROR_CHECK(nvs_flash_init());
 
-    int deep_sleep_sec = 3600;
+    int deep_sleep_sec = 3 * 60 * 60;
 
     if (!initialise_wifi()) {
         xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, NULL, 5, &get_current_weather_task_handler);
@@ -372,9 +376,27 @@ void app_main(void)
         struct tm timeinfo;
 
         time(&now);
+        setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
+        tzset();
         localtime_r(&now, &timeinfo);
 
-        deep_sleep_sec = update_interval_seconds - ((timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60)) % update_interval_seconds);
+        int seconds_of_today_ahead = (timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60));
+
+        bool sleep_time_set = false;
+
+        for (size_t i = 0; i < (sizeof(update_hours) / sizeof(update_hours[0])); i++) {
+            if (seconds_of_today_ahead <= (update_hours[i] * 60 * 60)) {
+                if (i + 1 < sizeof(update_hours)) {
+                    deep_sleep_sec = (update_hours[i] * 60 * 60) - seconds_of_today_ahead;
+                }
+                sleep_time_set = true;
+                break;
+            }
+        }
+
+        if (!sleep_time_set) {
+            deep_sleep_sec = (24 * 60 * 60 - seconds_of_today_ahead) + (update_hours[0] * 60 * 60);
+        }
     }
 
     ESP_LOGI(TAG, "Entering deep sleep for %d seconds", deep_sleep_sec);
