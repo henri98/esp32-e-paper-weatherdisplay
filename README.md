@@ -3,6 +3,8 @@
 
 An ESP32 and 4.2" ePaper Display reads Dark Sky weather API and displays the weather using the [Espressif IoT Development Framework](https://github.com/espressif/esp-idf)
 
+![](https://user-images.githubusercontent.com/9615443/50996018-24fa5380-1521-11e9-8491-38f05efca19d.gif)
+
 ## Getting Started
 
 ### Prerequisites
