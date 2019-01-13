@@ -7,16 +7,22 @@ An ESP32 and 4.2" ePaper Display reads Dark Sky weather API and displays the wea
 
 ## Getting Started
 
-### Prerequisites
+### Hardware
+
+For this project an ESP32 development module and a Waveshare 4.2inch e-Paper module are used. Documentation about this e-Paper module can be found [here](https://www.waveshare.com/wiki/4.2inch_e-Paper_Module). As ESP32 Development board the DOIT ESP32 DEVKIT V1 is used.
+
+### Sofware
+
+#### Prerequisites
 Please check [ESP-IDF docs](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for getting started instructions.
 
-### Clone the project 
+#### Clone the project 
 
 ```bash
 git clone https://github.com/henri98/esp32-e-paper-weatherdisplay.git
 ```
 
-### Build the project 
+#### Build the project 
 
 Navigate to the project folder:
 
