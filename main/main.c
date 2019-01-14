@@ -365,12 +365,13 @@ void app_main(void)
         xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, NULL, 5, &get_current_weather_task_handler);
         xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(4000 / portTICK_PERIOD_MS);
+
+        deinitialize_wifi();
 
         xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-        deinitialize_wifi();
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
 
         time_t now;
         struct tm timeinfo;
