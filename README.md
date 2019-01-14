@@ -9,9 +9,27 @@ An ESP32 and 4.2" ePaper Display reads Dark Sky weather API and displays the wea
 
 ### Hardware
 
-For this project an ESP32 development module and a Waveshare 4.2inch e-Paper module are used. Documentation about this e-Paper module can be found [here](https://www.waveshare.com/wiki/4.2inch_e-Paper_Module). As ESP32 Development board the DOIT ESP32 DEVKIT V1 is used.
+For this project an ESP32 development module and a Waveshare 4.2inch e-Paper module are used. Documentation about this e-Paper module can be found [here](https://www.waveshare.com/wiki/4.2inch_e-Paper_Module). As ESP32 development board the DOIT ESP32 DEVKIT V1 can be used used.
 
-### Sofware
+To save battery power, the SILABS CP210x USB to UART Bridge and the AMS1117 voltage regulator can be removed from the development board. An external USB to UART converter can be used for programming. 
+
+#### Pin configuration
+
+| Waveshare e-Paper | DOIT ESP32 DEVKIT V1 |
+| ----------------- | -------------------- |
+| MOSI_PIN          | GPIO_NUM_27          |
+| CLK_PIN           | GPIO_NUM_26          |
+| CS_PIN            | GPIO_NUM_25          |
+| DC_PIN            | GPIO_NUM_33          |
+| RST_PIN           | GPIO_NUM_32          |
+| BUSY_PIN          | GPIO_NUM_35          |
+| VCC				| 3V3				   |
+| GND				| GND			       |
+
+Connect a LiPo battery to the VCC of the Waveshare e-Paper module.
+
+
+### Software
 
 #### Prerequisites
 Please check [ESP-IDF docs](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for getting started instructions.
