@@ -61,6 +61,7 @@ const int CONNECTED_BIT = BIT0;
 * maintains its value when ESP32 wakes from deep sleep.
 */
 RTC_DATA_ATTR static int boot_count = 0;
+RTC_DATA_ATTR static time_t time_updated = 0;
 
 /**
  * place houres you want your display to be updated in this array
@@ -331,12 +332,15 @@ static void update_time_using_ntp_task(void* pvParameters)
     struct tm timeinfo;
     time(&now);
     localtime_r(&now, &timeinfo);
-    // Is time set? If not, tm_year will be (2016 - 1900).
-    if (timeinfo.tm_year < (2016 - 1900)) {
-        ESP_LOGI(TAG, "Time is not set yet. Connecting to WiFi and getting time over NTP.");
+    // Is time set? If not, tm_year will be (2016 - 1900)
+    // Time updated in last 24 hours? If not, ((time_updated + 60 * 60 * 24) < now)
+    if (timeinfo.tm_year < (2016 - 1900) || ((time_updated + 60 * 60 * 24) < now)) {
+        ESP_LOGI(TAG, "Time is not set yet or time is not updated last 24h. Connecting to WiFi and getting time over NTP.");
         obtain_time();
         // update 'now' variable with current time
         time(&now);
+
+        time_updated = now;
     }
 
     char strftime_buf[64];
