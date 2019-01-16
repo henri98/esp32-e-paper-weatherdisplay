@@ -38,6 +38,8 @@
 #include "Ubuntu24.c"
 #include "Ubuntu8.c"
 
+#include "esp_http_ota.h"
+
 #define COLORED 1
 #define UNCOLORED 0
 
@@ -95,6 +97,35 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         break;
     default:
+        break;
+    }
+    return ESP_OK;
+}
+
+esp_err_t _http_event_handler(esp_http_client_event_t* evt)
+{
+    static const char* TAG = "_http_event_handler";
+    switch (evt->event_id) {
+    case HTTP_EVENT_ERROR:
+        ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
+        break;
+    case HTTP_EVENT_ON_CONNECTED:
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
+        break;
+    case HTTP_EVENT_HEADER_SENT:
+        ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+        break;
+    case HTTP_EVENT_ON_HEADER:
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+        break;
+    case HTTP_EVENT_ON_DATA:
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+        break;
+    case HTTP_EVENT_ON_FINISH:
+        ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+        break;
+    case HTTP_EVENT_DISCONNECTED:
+        ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
         break;
     }
     return ESP_OK;
@@ -354,6 +385,33 @@ static void update_time_using_ntp_task(void* pvParameters)
     vTaskDelete(NULL);
 }
 
+void simple_ota_example_task(void* pvParameter)
+{
+    static const char* TAG = "simple_ota_example_task";
+    ESP_LOGI(TAG, "Starting OTA example...");
+
+    /* Wait for the callback to set the CONNECTED_BIT in the
+       event group.
+    */
+    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
+    ESP_LOGI(TAG, "Connect to Wifi ! Start to Connect to Server....");
+
+    esp_http_client_config_t config = {
+        .url = "http://192.168.178.176:8080/build/e-paper-weatherdisplay.bin",
+        .event_handler = _http_event_handler,
+    };
+
+    esp_err_t ret = esp_http_ota(&config);
+    if (ret == ESP_OK) {
+        esp_restart();
+    } else {
+        ESP_LOGE(TAG, "Firmware Upgrades Failed");
+    }
+    while (1) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
 void app_main(void)
 {
     static const char* TAG = "app_main";
@@ -366,41 +424,57 @@ void app_main(void)
     int deep_sleep_sec = 3 * 60 * 60;
 
     if (!initialise_wifi()) {
-        xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, NULL, 5, &get_current_weather_task_handler);
-        xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
+        gpio_config_t io_conf;
+        //bit mask of the pins, use GPIO4/5 here
+        io_conf.pin_bit_mask = GPIO_SEL_4;
+        //set as input mode
+        io_conf.mode = GPIO_MODE_INPUT;
+        //enable pull-up mode
+        io_conf.pull_up_en = 1;
+        gpio_config(&io_conf);
 
-        vTaskDelay(4000 / portTICK_PERIOD_MS);
+        if (!gpio_get_level(GPIO_NUM_4)) {
+            xTaskCreate(&simple_ota_example_task, "ota_example_task", 1024 * 14, NULL, 5, NULL);
+            vTaskDelay(1200000 / portTICK_PERIOD_MS);
+            deinitialize_wifi();
+        } else {
 
-        deinitialize_wifi();
+            xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, NULL, 5, &get_current_weather_task_handler);
+            xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
 
-        xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
+            vTaskDelay(4000 / portTICK_PERIOD_MS);
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+            deinitialize_wifi();
 
-        time_t now;
-        struct tm timeinfo;
+            xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
 
-        time(&now);
-        setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
-        tzset();
-        localtime_r(&now, &timeinfo);
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-        int seconds_of_today_ahead = (timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60));
+            time_t now;
+            struct tm timeinfo;
 
-        bool sleep_time_set = false;
+            time(&now);
+            setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0", 1);
+            tzset();
+            localtime_r(&now, &timeinfo);
 
-        for (size_t i = 0; i < (sizeof(update_hours) / sizeof(update_hours[0])); i++) {
-            if (seconds_of_today_ahead <= (update_hours[i] * 60 * 60)) {
-                if (i + 1 < sizeof(update_hours)) {
-                    deep_sleep_sec = (update_hours[i] * 60 * 60) - seconds_of_today_ahead;
+            int seconds_of_today_ahead = (timeinfo.tm_sec + (timeinfo.tm_min * 60) + (timeinfo.tm_hour * 60 * 60));
+
+            bool sleep_time_set = false;
+
+            for (size_t i = 0; i < (sizeof(update_hours) / sizeof(update_hours[0])); i++) {
+                if (seconds_of_today_ahead <= (update_hours[i] * 60 * 60)) {
+                    if (i + 1 < sizeof(update_hours)) {
+                        deep_sleep_sec = (update_hours[i] * 60 * 60) - seconds_of_today_ahead;
+                    }
+                    sleep_time_set = true;
+                    break;
                 }
-                sleep_time_set = true;
-                break;
             }
-        }
 
-        if (!sleep_time_set) {
-            deep_sleep_sec = (24 * 60 * 60 - seconds_of_today_ahead) + (update_hours[0] * 60 * 60);
+            if (!sleep_time_set) {
+                deep_sleep_sec = (24 * 60 * 60 - seconds_of_today_ahead) + (update_hours[0] * 60 * 60);
+            }
         }
     }
 
