@@ -264,7 +264,7 @@ static void update_display_task(void* pvParameters)
     sprintf(tmp_buff, "Pressure:%d hPa", pressure);
     draw_string_in_grid_align_center(2, 1, 400, 105, tmp_buff, &Ubuntu12);
 
-    sprintf(tmp_buff, "Wind :%d m/s (%s)", (int)round(wind_speed), deg_to_compass(wind_bearing));
+    sprintf(tmp_buff, "Wind :%d km/h (%s)", (int)round(wind_speed * 3.6), deg_to_compass(wind_bearing));
     draw_string_in_grid_align_center(2, 1, 400, 125, tmp_buff, &Ubuntu12);
 
     sprintf(tmp_buff, "Chance of Precipitation : %d%%", (int)round(precip_probability * 100));
