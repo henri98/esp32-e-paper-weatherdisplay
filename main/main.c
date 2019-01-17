@@ -37,8 +37,7 @@
 #include "Ubuntu22.c"
 #include "Ubuntu24.c"
 #include "Ubuntu8.c"
-
-#include "esp_http_ota.h"
+#include "ota.c"
 
 #define COLORED 1
 #define UNCOLORED 0
@@ -69,7 +68,7 @@ RTC_DATA_ATTR static time_t time_updated = 0;
  * place houres you want your display to be updated in this array
  * you can add values from 0 - 23 ascending
  */
-static int update_hours[] = { 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23 };
+static int update_hours[] = { 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };
 
 extern Forecast forecasts[8];
 extern char summary[50];
@@ -97,35 +96,6 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         break;
     default:
-        break;
-    }
-    return ESP_OK;
-}
-
-esp_err_t _http_event_handler(esp_http_client_event_t* evt)
-{
-    static const char* TAG = "_http_event_handler";
-    switch (evt->event_id) {
-    case HTTP_EVENT_ERROR:
-        ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
-        break;
-    case HTTP_EVENT_ON_CONNECTED:
-        ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
-        break;
-    case HTTP_EVENT_HEADER_SENT:
-        ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
-        break;
-    case HTTP_EVENT_ON_HEADER:
-        ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
-        break;
-    case HTTP_EVENT_ON_DATA:
-        ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
-        break;
-    case HTTP_EVENT_ON_FINISH:
-        ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
-        break;
-    case HTTP_EVENT_DISCONNECTED:
-        ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
         break;
     }
     return ESP_OK;
@@ -324,7 +294,7 @@ static void update_display_task(void* pvParameters)
         }
     }
 
-    draw_string_in_grid_align_left(1, 0, 2, 400, 0, "Garderen, The Netherlands", &Ubuntu12);
+    draw_string_in_grid_align_left(1, 0, 2, 400, 0, CONFIG_PLACE_NAME, &Ubuntu12);
 
     time(&now);
     char strftime_buf[64];
@@ -385,33 +355,6 @@ static void update_time_using_ntp_task(void* pvParameters)
     vTaskDelete(NULL);
 }
 
-void simple_ota_example_task(void* pvParameter)
-{
-    static const char* TAG = "simple_ota_example_task";
-    ESP_LOGI(TAG, "Starting OTA example...");
-
-    /* Wait for the callback to set the CONNECTED_BIT in the
-       event group.
-    */
-    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
-    ESP_LOGI(TAG, "Connect to Wifi ! Start to Connect to Server....");
-
-    esp_http_client_config_t config = {
-        .url = "http://192.168.178.176:8080/build/e-paper-weatherdisplay.bin",
-        .event_handler = _http_event_handler,
-    };
-
-    esp_err_t ret = esp_http_ota(&config);
-    if (ret == ESP_OK) {
-        esp_restart();
-    } else {
-        ESP_LOGE(TAG, "Firmware Upgrades Failed");
-    }
-    while (1) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-}
-
 void app_main(void)
 {
     static const char* TAG = "app_main";
@@ -424,17 +367,10 @@ void app_main(void)
     int deep_sleep_sec = 3 * 60 * 60;
 
     if (!initialise_wifi()) {
-        gpio_config_t io_conf;
-        //bit mask of the pins, use GPIO4/5 here
-        io_conf.pin_bit_mask = GPIO_SEL_4;
-        //set as input mode
-        io_conf.mode = GPIO_MODE_INPUT;
-        //enable pull-up mode
-        io_conf.pull_up_en = 1;
-        gpio_config(&io_conf);
+        init_ota_button();
 
-        if (!gpio_get_level(GPIO_NUM_4)) {
-            xTaskCreate(&simple_ota_example_task, "ota_example_task", 1024 * 14, NULL, 5, NULL);
+        if (check_if_ota_button_pressed()) {
+            xTaskCreate(&ota_task, "ota_example_task", 1024 * 14, NULL, 5, NULL);
             vTaskDelay(1200000 / portTICK_PERIOD_MS);
             deinitialize_wifi();
         } else {

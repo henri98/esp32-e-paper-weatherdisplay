@@ -40,7 +40,7 @@ Please check [ESP-IDF docs](https://docs.espressif.com/projects/esp-idf/en/lates
 git clone https://github.com/henri98/esp32-e-paper-weatherdisplay.git
 ```
 
-#### Build the project 
+#### Build and flash the project 
 
 Navigate to the project folder:
 
@@ -55,7 +55,7 @@ make menuconfig
 ```
 The configuration menu will be displayed. Navigate to WiFi Configuration and enter credentials to connect to the WiFi. Navigate to Dark Sky configuration and configure the Latitude, Longitude and the Dark Sky API key. You can get an API key [here](https://darksky.net/dev). With an API key you can make up to 1000 free requests, so enough to keep the weather display up to date.  
 
-Build and flash the firmware on the esp32:
+Build and flash the firmware on the ESP32:
 
 ```bash
 make flash 
@@ -65,9 +65,29 @@ To monitor the programm use:
 make monitor 
 ```
 
+You can also choose to update the firmware over the air. This requires that a previous version of the firmware has already flashed. The update will be downloaded over HTTP. The update URL can be configured:
+
+```bash
+make menuconfig
+```
+The configuration menu will be displayed. Navigate to WiFi Configuration and enter the URL where the firmware can be found. After compiling the binary file can be found in the build directory: e-paper-weatherdisplay.bin
+
+A simple HTTP server can be created using python:
+
+```bash
+python3 -m http.server 8080
+```
+
+If you start the HTTP server in the root of the project, the firmware can be retrieved via:
+
+http://<ip>:8080/build/e-paper-weatherdisplay.bin
+
+By pressing the update button (connect pin 4 to GND) after a reset the update will be started.
+
+
 ## Casing 
 
-A housing has been made for the hardware. This can be found on Thingiverse: https://www.thingiverse.com/thing:3357579
+A case has been made for the hardware. This can be found on Thingiverse: https://www.thingiverse.com/thing:3357579
 
 ## License
 

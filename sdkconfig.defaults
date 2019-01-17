@@ -47,6 +47,7 @@ CONFIG_FLASH_ENCRYPTION_ENABLED=
 #
 # Darksky Configuration
 #
+CONFIG_PLACE_NAME="Garderen"
 CONFIG_LATITUDE="52.234361"
 CONFIG_LONGITUDE="5.716846"
 CONFIG_DARKSKY_API_KEY="replace_with_an_api_key"
@@ -102,6 +103,7 @@ CONFIG_MONITOR_BAUD=115200
 CONFIG_ESP_WIFI_SSID="example123"
 CONFIG_ESP_WIFI_PASSWORD="example123"
 CONFIG_ESP_DNS_NAME="weatherdisplay"
+CONFIG_OTA_URL="http://192.168.178.176:8080/build/e-paper-weatherdisplay.bin"
 
 #
 # Partition Table

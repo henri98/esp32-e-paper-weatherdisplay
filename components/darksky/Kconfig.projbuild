@@ -1,5 +1,9 @@
 menu "Darksky Configuration"
 
+config PLACE_NAME
+    string "Place name"
+    default "Garderen, The Netherlands"
+
 config LATITUDE
     string "Latitude"
     default "52.234361"

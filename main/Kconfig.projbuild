@@ -17,4 +17,11 @@ config ESP_DNS_NAME
     default "myweatherdisplay"
     help
 	DNS name for the project to use in the network.
+
+
+config OTA_URL
+    string "OTA URL"
+    default "http://192.168.178.176:8080/build/e-paper-weatherdisplay.bin"
+    help
+	URL for getting the bin file over the air using http.
 endmenu
