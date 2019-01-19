@@ -28,16 +28,17 @@
 
 #include "icons.h"
 
-#include "Ubuntu10.c"
-#include "Ubuntu12.c"
-#include "Ubuntu14.c"
-#include "Ubuntu16.c"
-#include "Ubuntu18.c"
-#include "Ubuntu20.c"
-#include "Ubuntu22.c"
-#include "Ubuntu24.c"
-#include "Ubuntu8.c"
-#include "ota.c"
+#include "ubuntu10.h"
+#include "ubuntu12.h"
+#include "ubuntu14.h"
+#include "ubuntu16.h"
+#include "ubuntu18.h"
+#include "ubuntu20.h"
+#include "ubuntu22.h"
+#include "ubuntu24.h"
+#include "ubuntu8.h"
+
+#include "ota.h"
 
 #define COLORED 1
 #define UNCOLORED 0

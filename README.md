@@ -23,9 +23,9 @@ To save battery power, the SILABS CP210x USB to UART Bridge and the AMS1117 volt
 | DC_PIN            | GPIO_NUM_33          |
 | RST_PIN           | GPIO_NUM_32          |
 | BUSY_PIN          | GPIO_NUM_35          |
-| VCC				| 3V3				   |
-| GND				| GND			       |
-
+| VCC               | 3V3                  |
+| GND               | GND                  |
+            
 Connect a LiPo battery to the VCC of the Waveshare e-Paper module.
 
 
