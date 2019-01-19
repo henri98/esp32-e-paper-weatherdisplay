@@ -3,7 +3,7 @@
 
 An ESP32 and 4.2" ePaper Display reads Dark Sky weather API and displays the weather using the [Espressif IoT Development Framework](https://github.com/espressif/esp-idf)
 
-![](https://user-images.githubusercontent.com/9615443/50996018-24fa5380-1521-11e9-8491-38f05efca19d.gif)
+![esp32-e-paper-weatherdisplay-0](https://user-images.githubusercontent.com/9615443/50996018-24fa5380-1521-11e9-8491-38f05efca19d.gif)
 
 ## Getting Started
 
@@ -78,9 +78,9 @@ A simple HTTP server can be created using python:
 python3 -m http.server 8080
 ```
 
-If you start the HTTP server in the root of the project, the firmware can be retrieved via:
+If you start the HTTP server in the root of the project, the firmware can be retrieved using:
 
-http://<ip>:8080/build/e-paper-weatherdisplay.bin
+http://ip:8080/build/e-paper-weatherdisplay.bin
 
 By pressing the update button (connect pin 4 to GND) after a reset the update will be started.
 
@@ -102,6 +102,6 @@ The images and font are converted to "C" source format using [LCD Image Converte
 
 ## Images 
 
-![](https://user-images.githubusercontent.com/9615443/50922221-40465f80-144a-11e9-85fb-8d3b429d94a6.jpeg)
+![esp32-e-paper-weatherdisplay-1](https://user-images.githubusercontent.com/9615443/50922221-40465f80-144a-11e9-85fb-8d3b429d94a6.jpeg)
 
-![](https://user-images.githubusercontent.com/9615443/50922222-40465f80-144a-11e9-8928-c48453101c8a.jpeg)
+![esp32-e-paper-weatherdisplay-2](https://user-images.githubusercontent.com/9615443/50922222-40465f80-144a-11e9-8928-c48453101c8a.jpeg)

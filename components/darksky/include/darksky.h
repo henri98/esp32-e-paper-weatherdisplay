@@ -8,7 +8,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
-#include "nvs_flash.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
