@@ -66,10 +66,32 @@ RTC_DATA_ATTR static int boot_count = 0;
 RTC_DATA_ATTR static time_t time_updated = 0;
 
 /**
- * place houres you want your display to be updated in this array
- * you can add values from 0 - 23 ascending
+ * place times you want your display to be updated in this array
+ * examples:
+ * 7 * 60 + 0: 7:00
+ * 7 * 60 + 10: 7:10
+ * 10 * 60 + 40: 10:40
+ * 21 * 60 + 30: 21:30
+ * enz.
  */
-static int update_hours[] = { 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };
+static int update_times[] = {
+    7 * 60 + 0, 7 * 60 + 10, 7 * 60 + 20, 7 * 60 + 30, 7 * 60 + 40, 7 * 60 + 50,
+    8 * 60 + 0, 8 * 60 + 10, 8 * 60 + 20, 8 * 60 + 30, 8 * 60 + 40, 8 * 60 + 50,
+    9 * 60 + 0, 9 * 60 + 10, 9 * 60 + 20, 9 * 60 + 30, 9 * 60 + 40, 9 * 60 + 50,
+    10 * 60 + 0, 10 * 60 + 10, 10 * 60 + 20, 10 * 60 + 30, 10 * 60 + 40, 10 * 60 + 50,
+    11 * 60 + 0, 11 * 60 + 10, 11 * 60 + 20, 11 * 60 + 30, 11 * 60 + 40, 11 * 60 + 50,
+    12 * 60 + 0, 12 * 60 + 10, 12 * 60 + 20, 12 * 60 + 30, 12 * 60 + 40, 12 * 60 + 50,
+    13 * 60 + 0, 13 * 60 + 10, 13 * 60 + 20, 13 * 60 + 30, 13 * 60 + 40, 13 * 60 + 50,
+    14 * 60 + 0, 14 * 60 + 10, 14 * 60 + 20, 14 * 60 + 30, 14 * 60 + 40, 14 * 60 + 50,
+    15 * 60 + 0, 15 * 60 + 10, 15 * 60 + 20, 15 * 60 + 30, 15 * 60 + 40, 15 * 60 + 50,
+    16 * 60 + 0, 16 * 60 + 10, 16 * 60 + 20, 16 * 60 + 30, 16 * 60 + 40, 16 * 60 + 50,
+    17 * 60 + 0, 17 * 60 + 10, 17 * 60 + 20, 17 * 60 + 30, 17 * 60 + 40, 17 * 60 + 50,
+    18 * 60 + 0, 18 * 60 + 10, 18 * 60 + 20, 18 * 60 + 30, 18 * 60 + 40, 18 * 60 + 50,
+    19 * 60 + 0, 19 * 60 + 10, 19 * 60 + 20, 19 * 60 + 30, 19 * 60 + 40, 19 * 60 + 50,
+    20 * 60 + 0, 20 * 60 + 10, 20 * 60 + 20, 20 * 60 + 30, 20 * 60 + 40, 20 * 60 + 50,
+    21 * 60 + 0, 21 * 60 + 10, 21 * 60 + 20, 21 * 60 + 30, 21 * 60 + 40, 21 * 60 + 50,
+    22 * 60 + 0, 22 * 60 + 10, 22 * 60 + 20, 22 * 60 + 30, 22 * 60 + 40, 22 * 60 + 50
+};
 
 extern Forecast forecasts[8];
 extern char summary[50];
@@ -167,9 +189,9 @@ static void obtain_time(void)
     }
 }
 
-static void update_display_task(void* pvParameters)
+static void weather_to_display_task(void* pvParameters)
 {
-    static const char* TAG = "update_display_task";
+    static const char* TAG = "weather_to_display_task";
 
     time_t now;
     struct tm timeinfo;
@@ -376,14 +398,14 @@ void app_main(void)
             deinitialize_wifi();
         } else {
 
-            xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 14, NULL, 5, &get_current_weather_task_handler);
+            xTaskCreate(&get_current_weather_task, "get_current_weather_task", 1024 * 20, NULL, 5, &get_current_weather_task_handler);
             xTaskCreate(&update_time_using_ntp_task, "update_time_using_ntp_task", 2048, NULL, 5, &update_time_using_ntp_task_handler);
 
             vTaskDelay(4000 / portTICK_PERIOD_MS);
 
             deinitialize_wifi();
 
-            xTaskCreate(&update_display_task, "update_display_task", 8192, NULL, 5, NULL);
+            xTaskCreate(&weather_to_display_task, "weather_to_display_task", 8192, NULL, 5, NULL);
 
             vTaskDelay(5000 / portTICK_PERIOD_MS);
 
@@ -399,10 +421,10 @@ void app_main(void)
 
             bool sleep_time_set = false;
 
-            for (size_t i = 0; i < (sizeof(update_hours) / sizeof(update_hours[0])); i++) {
-                if (seconds_of_today_ahead <= (update_hours[i] * 60 * 60)) {
-                    if (i + 1 < sizeof(update_hours)) {
-                        deep_sleep_sec = (update_hours[i] * 60 * 60) - seconds_of_today_ahead;
+            for (size_t i = 0; i < (sizeof(update_times) / sizeof(update_times[0])); i++) {
+                if (seconds_of_today_ahead <= (update_times[i] * 60)) {
+                    if (i + 1 < sizeof(update_times)) {
+                        deep_sleep_sec = (update_times[i] * 60) - seconds_of_today_ahead;
                     }
                     sleep_time_set = true;
                     break;
@@ -410,7 +432,7 @@ void app_main(void)
             }
 
             if (!sleep_time_set) {
-                deep_sleep_sec = (24 * 60 * 60 - seconds_of_today_ahead) + (update_hours[0] * 60 * 60);
+                deep_sleep_sec = (24 * 60 - seconds_of_today_ahead) + (update_times[0] * 60);
             }
         }
     }

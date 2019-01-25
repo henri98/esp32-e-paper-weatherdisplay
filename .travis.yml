@@ -28,18 +28,13 @@ install:
   # Install ESP32 toochain following steps as desribed
   # in http://esp-idf.readthedocs.io/en/latest/linux-setup.html
   #
-  # Get required packages - already done above, see addons: apt: packages:
-  # - sudo apt-get install git wget make libncurses-dev flex bison gperf python python-serial
   # Prepare directory for the toolchain
   - mkdir -p ~/esp
   - cd ~/esp
-  # Download binary toolchain for the ESP32
-  - wget https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-1.22.0-73-ge28a011-5.2.0.tar.gz
-  - tar -xzf xtensa-esp32-elf-linux64-1.22.0-73-ge28a011-5.2.0.tar.gz
-  # Make xtensa-esp32-elf available for all terminal sessions
-  - export PATH=$PATH:$HOME/esp/xtensa-esp32-elf/bin
   # Get ESP-IDF from github
   - git clone --recursive https://github.com/espressif/esp-idf.git
+  # Make xtensa-esp32-elf available for all terminal sessions
+  - export PATH="$IDF_PATH/tools:$PATH"
   # Install all requirements
   - /usr/bin/python -m pip install --user -r /home/travis/esp/esp-idf/requirements.txt
   # Set the path to ESP-IDF directory

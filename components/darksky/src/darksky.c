@@ -89,7 +89,7 @@ const char* deg_to_compass(int degrees)
 void get_current_weather_task(void* pvParameters)
 {
 
-    char buf[1024 * 10];
+    char buf[1024 * 15];
 
     https_get(WEB_URL, request, buf);
 
