@@ -1,3 +1,4 @@
+#include <dirent.h>
 /* HTTP GET Example using plain POSIX sockets
 
    This example code is in the Public Domain (or CC0 licensed, at your option.)
@@ -34,7 +35,7 @@ static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
     "User-Agent: esp-idf/1.0 esp32\r\n"
     "\r\n";
 
-static void http_get_task(void *pvParameters)
+_Noreturn static void http_get_task(void *pvParameters)
 {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
