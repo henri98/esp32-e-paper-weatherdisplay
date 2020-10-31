@@ -1,2 +1,18 @@
-name: esp-idf build
-uses: sebastianPsm/esp-idf-ci-action@1
+name: C/C++ CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout esp32-epaper-weatherdisplay repo
+        uses: actions/checkout@v2
+      - name: esp-idf build
+        uses: sebastianPsm/esp-idf-ci-action@1
