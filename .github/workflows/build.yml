@@ -1,0 +1,2 @@
+name: esp-idf build
+uses: sebastianPsm/esp-idf-ci-action@1
